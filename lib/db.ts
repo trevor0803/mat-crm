@@ -24,3 +24,27 @@ export const CREATE_CHATTER_NOTES_TABLE = `
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
   );
 `;
+
+export const CREATE_TEAM_MEMBERS_TABLE = `
+  CREATE TABLE IF NOT EXISTS team_members (
+    id SERIAL PRIMARY KEY,
+    name TEXT UNIQUE NOT NULL,
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+  );
+`;
+
+export const CREATE_TASKS_TABLE = `
+  CREATE TABLE IF NOT EXISTS tasks (
+    id SERIAL PRIMARY KEY,
+    title TEXT NOT NULL,
+    description TEXT,
+    due_date DATE,
+    priority TEXT NOT NULL DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high')),
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'done')),
+    client_id INTEGER REFERENCES clients(id) ON DELETE SET NULL,
+    assignee_id INTEGER NOT NULL REFERENCES team_members(id),
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    completed_at TIMESTAMP
+  );
+`;

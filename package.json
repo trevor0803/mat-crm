@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "db:migrate": "tsx --env-file=.env.development.local scripts/migrate.ts",
-    "db:seed": "tsx --env-file=.env.development.local scripts/seed.ts"
+    "db:seed": "tsx --env-file=.env.development.local scripts/seed.ts",
+    "db:seed-team": "tsx --env-file=.env.development.local scripts/seed-team.ts"
   },
   "dependencies": {
     "@vercel/postgres": "^0.10.0",
@@ -16,7 +17,8 @@
     "lucide-react": "^0.460.0",
     "next": "14.2.18",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "sonner": "^2.0.7"
   },
   "devDependencies": {
     "@types/node": "^22.9.0",
