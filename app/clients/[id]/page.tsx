@@ -11,6 +11,7 @@ import { Note } from "@/lib/notes";
 import { Task, TeamMember } from "@/lib/tasks";
 import { ClientFormModal } from "@/components/ClientFormModal";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { MediaSection } from "@/components/MediaSection";
 import { NotesFeed } from "@/components/NotesFeed";
 import { TaskFormModal } from "@/components/TaskFormModal";
 import { TaskList } from "@/components/TaskList";
@@ -387,6 +388,8 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
           onDelete={(t) => setDeleteTaskTarget(t)}
         />
       </section>
+
+      <MediaSection clientId={client.id} />
 
       <section>
         <h2 className="mb-3 text-lg font-semibold text-brand-gold">Chatter</h2>

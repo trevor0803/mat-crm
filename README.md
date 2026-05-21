@@ -10,6 +10,7 @@ agency day-to-day.
 - **Language:** TypeScript
 - **Styling:** Tailwind CSS
 - **Database:** Vercel Postgres (Neon)
+- **File storage:** Vercel Blob
 - **Toasts:** sonner
 - **Icons:** lucide-react
 - **Hosting:** Vercel
@@ -45,6 +46,24 @@ npm run dev
 ```
 
 Open <http://localhost:3000>.
+
+## Vercel Blob Setup
+
+Per-client media uploads are stored in Vercel Blob. One-time setup:
+
+1. Open the Vercel project → **Storage** tab.
+2. **Create Blob store** → name it `mat-crm-media`.
+3. Connect the store to this project in **all environments** (Development,
+   Preview, Production). Vercel will inject `BLOB_READ_WRITE_TOKEN` into the
+   project's env vars automatically.
+4. Pull the new env var locally:
+
+   ```bash
+   vercel env pull .env.development.local
+   cp .env.development.local .env.local   # if your tooling reads .env.local
+   ```
+
+Uploads cap at **500MB per file**.
 
 ## Deployment
 

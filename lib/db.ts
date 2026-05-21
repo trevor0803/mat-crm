@@ -48,3 +48,21 @@ export const CREATE_TASKS_TABLE = `
     completed_at TIMESTAMP
   );
 `;
+
+export const CREATE_MEDIA_FILES_TABLE = `
+  CREATE TABLE IF NOT EXISTS media_files (
+    id SERIAL PRIMARY KEY,
+    client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+    filename TEXT NOT NULL,
+    blob_url TEXT NOT NULL,
+    blob_pathname TEXT NOT NULL,
+    content_type TEXT,
+    size_bytes BIGINT NOT NULL,
+    description TEXT,
+    uploaded_at TIMESTAMP NOT NULL DEFAULT NOW()
+  );
+`;
+
+export const CREATE_MEDIA_FILES_INDEX = `
+  CREATE INDEX IF NOT EXISTS idx_media_files_client_id ON media_files(client_id);
+`;

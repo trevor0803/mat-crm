@@ -4,6 +4,8 @@ import {
   CREATE_CHATTER_NOTES_TABLE,
   CREATE_TEAM_MEMBERS_TABLE,
   CREATE_TASKS_TABLE,
+  CREATE_MEDIA_FILES_TABLE,
+  CREATE_MEDIA_FILES_INDEX,
 } from "../lib/db";
 
 async function migrate() {
@@ -18,6 +20,10 @@ async function migrate() {
 
   await sql.query(CREATE_TASKS_TABLE);
   console.log("tasks: ready");
+
+  await sql.query(CREATE_MEDIA_FILES_TABLE);
+  await sql.query(CREATE_MEDIA_FILES_INDEX);
+  console.log("media_files: ready");
 
   console.log("Migration complete.");
 }

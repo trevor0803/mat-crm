@@ -12,6 +12,7 @@
     "db:seed-team": "tsx --env-file=.env.development.local scripts/seed-team.ts"
   },
   "dependencies": {
+    "@vercel/blob": "^2.4.0",
     "@vercel/postgres": "^0.10.0",
     "date-fns": "^4.1.0",
     "lucide-react": "^0.460.0",
