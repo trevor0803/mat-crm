@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Client } from "@/lib/clients";
 import { Note } from "@/lib/notes";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { NotesFeed } from "@/components/NotesFeed";
 
 export default function ChatterPage() {
@@ -15,6 +16,9 @@ export default function ChatterPage() {
   const [composeText, setComposeText] = useState("");
   const [posting, setPosting] = useState(false);
   const [composeError, setComposeError] = useState<string | null>(null);
+
+  const [deleteNoteTarget, setDeleteNoteTarget] = useState<Note | null>(null);
+  const [deletingNote, setDeletingNote] = useState(false);
 
   async function fetchClients() {
     const res = await fetch("/api/clients", { cache: "no-store" });
@@ -79,6 +83,37 @@ export default function ChatterPage() {
     }
   }
 
+  async function confirmDeleteNote() {
+    if (!deleteNoteTarget) return;
+    const target = deleteNoteTarget;
+    setDeletingNote(true);
+    setNotes((prev) => (prev ? prev.filter((n) => n.id !== target.id) : prev));
+    try {
+      const res = await fetch(`/api/notes/${target.id}`, { method: "DELETE" });
+      if (!res.ok && res.status !== 204) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error ?? `Delete failed (${res.status})`);
+      }
+      setDeleteNoteTarget(null);
+      toast.success("Note deleted");
+    } catch (err) {
+      // Rollback the optimistic removal.
+      setNotes((prev) => {
+        if (!prev) return prev;
+        if (prev.some((n) => n.id === target.id)) return prev;
+        const next = [...prev, target];
+        next.sort(
+          (a, b) =>
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+        );
+        return next;
+      });
+      toast.error(err instanceof Error ? err.message : "Failed to delete note");
+    } finally {
+      setDeletingNote(false);
+    }
+  }
+
   return (
     <div className="space-y-8">
       <section>
@@ -134,8 +169,22 @@ export default function ChatterPage() {
             {loadError}
           </div>
         )}
-        <NotesFeed notes={notes} showBusinessName emptyMessage="No chatter notes yet." />
+        <NotesFeed
+          notes={notes}
+          showBusinessName
+          emptyMessage="No chatter notes yet."
+          onDelete={(n) => setDeleteNoteTarget(n)}
+        />
       </section>
+
+      <ConfirmDialog
+        open={!!deleteNoteTarget}
+        title="Delete this note?"
+        message="This can't be undone."
+        busy={deletingNote}
+        onConfirm={confirmDeleteNote}
+        onCancel={() => (deletingNote ? undefined : setDeleteNoteTarget(null))}
+      />
     </div>
   );
 }

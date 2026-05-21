@@ -44,6 +44,9 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
   const [posting, setPosting] = useState(false);
   const [composeError, setComposeError] = useState<string | null>(null);
 
+  const [deleteNoteTarget, setDeleteNoteTarget] = useState<Note | null>(null);
+  const [deletingNote, setDeletingNote] = useState(false);
+
   async function fetchClient() {
     const res = await fetch(`/api/clients/${id}`, { cache: "no-store" });
     if (res.status === 404) {
@@ -211,6 +214,37 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
       toast.error(message);
     } finally {
       setPosting(false);
+    }
+  }
+
+  async function confirmDeleteNote() {
+    if (!deleteNoteTarget) return;
+    const target = deleteNoteTarget;
+    setDeletingNote(true);
+    setNotes((prev) => (prev ? prev.filter((n) => n.id !== target.id) : prev));
+    try {
+      const res = await fetch(`/api/notes/${target.id}`, { method: "DELETE" });
+      if (!res.ok && res.status !== 204) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error ?? `Delete failed (${res.status})`);
+      }
+      setDeleteNoteTarget(null);
+      toast.success("Note deleted");
+    } catch (err) {
+      // Rollback the optimistic removal.
+      setNotes((prev) => {
+        if (!prev) return prev;
+        if (prev.some((n) => n.id === target.id)) return prev;
+        const next = [...prev, target];
+        next.sort(
+          (a, b) =>
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+        );
+        return next;
+      });
+      toast.error(err instanceof Error ? err.message : "Failed to delete note");
+    } finally {
+      setDeletingNote(false);
     }
   }
 
@@ -421,7 +455,12 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
           </div>
         </form>
 
-        <NotesFeed notes={notes} showBusinessName={false} className="mt-4" />
+        <NotesFeed
+          notes={notes}
+          showBusinessName={false}
+          className="mt-4"
+          onDelete={(n) => setDeleteNoteTarget(n)}
+        />
       </section>
 
       <ClientFormModal
@@ -474,6 +513,15 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
         busy={deletingTask}
         onConfirm={confirmDeleteTask}
         onCancel={() => (deletingTask ? undefined : setDeleteTaskTarget(null))}
+      />
+
+      <ConfirmDialog
+        open={!!deleteNoteTarget}
+        title="Delete this note?"
+        message="This can't be undone."
+        busy={deletingNote}
+        onConfirm={confirmDeleteNote}
+        onCancel={() => (deletingNote ? undefined : setDeleteNoteTarget(null))}
       />
     </div>
   );

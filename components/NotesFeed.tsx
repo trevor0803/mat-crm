@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { format } from "date-fns";
+import { Trash2 } from "lucide-react";
 import { Note } from "@/lib/notes";
 
 const NOTE_TIMESTAMP_FORMAT = "MMM d, yyyy 'at' h:mm a";
@@ -11,6 +12,7 @@ type Props = {
   showBusinessName: boolean;
   emptyMessage?: string;
   className?: string;
+  onDelete?: (note: Note) => void;
 };
 
 export function NotesFeed({
@@ -18,6 +20,7 @@ export function NotesFeed({
   showBusinessName,
   emptyMessage,
   className = "",
+  onDelete,
 }: Props) {
   if (notes === null) {
     return (
@@ -48,7 +51,7 @@ export function NotesFeed({
       {notes.map((n) => (
         <article
           key={n.id}
-          className="rounded-lg border border-white/5 bg-brand-card p-4"
+          className="group relative rounded-lg border border-white/5 bg-brand-card p-4"
         >
           <header className="mb-2 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
             {showBusinessName ? (
@@ -63,13 +66,23 @@ export function NotesFeed({
             )}
             <time
               dateTime={n.created_at}
-              className="text-xs text-gray-500"
+              className={`text-xs text-gray-500 ${onDelete ? "pr-8" : ""}`}
               title={n.created_at}
             >
               {format(new Date(n.created_at), NOTE_TIMESTAMP_FORMAT)}
             </time>
           </header>
           <p className="whitespace-pre-wrap text-sm text-gray-200">{n.note}</p>
+          {onDelete && (
+            <button
+              type="button"
+              onClick={() => onDelete(n)}
+              aria-label="Delete note"
+              className="absolute right-2 top-2 rounded p-1.5 text-gray-400 opacity-0 transition-opacity hover:bg-white/10 hover:text-red-400 focus:opacity-100 group-hover:opacity-100"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          )}
         </article>
       ))}
     </div>
