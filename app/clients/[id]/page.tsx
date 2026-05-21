@@ -217,6 +217,27 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
     }
   }
 
+  async function updateNote(target: Note, nextText: string) {
+    try {
+      const res = await fetch(`/api/notes/${target.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ note: nextText }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error ?? `Update failed (${res.status})`);
+      }
+      const updated: Note = await res.json();
+      setNotes((prev) =>
+        prev ? prev.map((n) => (n.id === updated.id ? updated : n)) : prev,
+      );
+      toast.success("Note updated");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update note");
+    }
+  }
+
   async function confirmDeleteNote() {
     if (!deleteNoteTarget) return;
     const target = deleteNoteTarget;
@@ -460,6 +481,7 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
           showBusinessName={false}
           className="mt-4"
           onDelete={(n) => setDeleteNoteTarget(n)}
+          onUpdate={updateNote}
         />
       </section>
 
