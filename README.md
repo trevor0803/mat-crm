@@ -74,6 +74,32 @@ Database migrations are run locally (`npm run db:migrate`) against the
 shared Vercel Postgres instance, so they take effect for production
 immediately. Coordinate schema changes with the team.
 
+## Cron Setup
+
+A daily cron generates billing tasks automatically. Every day at **11:00 UTC**
+(6am EST / 7am EDT) it scans active clients and creates a `Bill [Client] $XXX`
+task — assigned to Trevor, due that day — for any client whose `bill_date`
+day-of-month matches today. It's idempotent: re-running it the same day won't
+create duplicate tasks.
+
+The schedule lives in `vercel.json` and points at
+`/api/cron/generate-billing-tasks`.
+
+**One-time setup:**
+
+1. Add a `CRON_SECRET` environment variable to the Vercel project in
+   **Production** (Settings → Environment Variables). Use a long random string.
+   Vercel automatically sends it as `Authorization: Bearer <CRON_SECRET>` when
+   invoking the cron, and the route rejects any request that doesn't match.
+
+**Notes:**
+
+- Cron jobs only run on **Production** deploys — they do not fire on Preview
+  or Development deployments.
+- To test the logic locally (or on a Preview deploy), hit
+  `/api/cron/generate-billing-tasks/test` — it runs the identical logic with no
+  auth check. This test endpoint is disabled on Production.
+
 ## Scripts
 
 | Script | Description |
