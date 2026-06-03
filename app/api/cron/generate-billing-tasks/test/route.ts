@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { generateBillingTasks } from "../logic";
+import { runDailyBillingTasks } from "../logic";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -16,7 +16,7 @@ export async function GET() {
   }
 
   try {
-    const result = await generateBillingTasks();
+    const result = await runDailyBillingTasks();
     return NextResponse.json(result);
   } catch (err) {
     console.error("[GET /api/cron/generate-billing-tasks/test]", err);

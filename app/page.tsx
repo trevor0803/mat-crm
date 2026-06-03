@@ -7,6 +7,7 @@ import {
   ArrowDown,
   ArrowUp,
   ArrowUpDown,
+  History,
   ListPlus,
   Pencil,
   Trash2,
@@ -66,6 +67,9 @@ export default function DashboardPage() {
 
   const [deleteTaskTarget, setDeleteTaskTarget] = useState<Task | null>(null);
   const [deletingTask, setDeletingTask] = useState(false);
+
+  const [backfillConfirmOpen, setBackfillConfirmOpen] = useState(false);
+  const [backfilling, setBackfilling] = useState(false);
 
   async function fetchClients() {
     try {
@@ -248,6 +252,35 @@ export default function DashboardPage() {
     }
   }
 
+  async function runBackfill() {
+    setBackfilling(true);
+    try {
+      const res = await fetch("/api/admin/backfill-billing-tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ daysBack: 7 }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error ?? `Backfill failed (${res.status})`);
+      }
+      const data = await res.json();
+      await fetchTasks(statusTab, assigneeFilter);
+      const created = data.totalCreated ?? 0;
+      toast.success(
+        `Backfilled ${created} billing task${created === 1 ? "" : "s"}` +
+          (data.totalSkipped ? ` (${data.totalSkipped} already existed)` : ""),
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Backfill failed";
+      setTasksError(message);
+      toast.error(message);
+    } finally {
+      setBackfilling(false);
+      setBackfillConfirmOpen(false);
+    }
+  }
+
   const visibleTasks = useMemo(() => {
     if (!tasks) return [];
     if (showAllTasks) return tasks;
@@ -305,6 +338,17 @@ export default function DashboardPage() {
                 Completed
               </TabButton>
             </div>
+
+            <button
+              type="button"
+              onClick={() => setBackfillConfirmOpen(true)}
+              disabled={backfilling}
+              title="Generate billing tasks for the last 7 days"
+              className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-brand-card px-3 py-1.5 text-sm text-gray-200 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <History className="h-4 w-4" />
+              {backfilling ? "Backfilling…" : "Backfill 7 days"}
+            </button>
 
             <button
               type="button"
@@ -435,6 +479,16 @@ export default function DashboardPage() {
         busy={deletingTask}
         onConfirm={confirmDeleteTask}
         onCancel={() => (deletingTask ? undefined : setDeleteTaskTarget(null))}
+      />
+
+      <ConfirmDialog
+        open={backfillConfirmOpen}
+        title="Generate billing tasks for the last 7 days?"
+        message="This creates billing tasks for any active client whose bill date fell in the last 7 days. Existing tasks won't be duplicated."
+        confirmLabel="Generate"
+        busy={backfilling}
+        onConfirm={runBackfill}
+        onCancel={() => (backfilling ? undefined : setBackfillConfirmOpen(false))}
       />
     </div>
   );
