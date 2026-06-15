@@ -111,6 +111,11 @@ function TaskRow({
           </div>
         )}
         <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+          {task.category === "billing" && (
+            <span className="inline-flex items-center rounded-full bg-emerald-500/15 px-2 py-0.5 font-medium text-emerald-300">
+              Billing
+            </span>
+          )}
           <span
             className={`inline-flex items-center rounded-full px-2 py-0.5 font-medium ${priorityColor(
               task.priority,

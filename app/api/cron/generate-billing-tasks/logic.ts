@@ -115,8 +115,8 @@ export async function processDayForBilling(
       }
 
       await sql`
-        INSERT INTO tasks (title, due_date, priority, status, client_id, assignee_id)
-        VALUES (${title}, ${dateISO}, 'medium', 'pending', ${client.id}, ${trevorId})
+        INSERT INTO tasks (title, due_date, priority, status, category, client_id, assignee_id)
+        VALUES (${title}, ${dateISO}, 'medium', 'pending', 'billing', ${client.id}, ${trevorId})
       `;
       tasksCreated++;
     } catch (err) {

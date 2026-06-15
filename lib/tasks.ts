@@ -1,5 +1,6 @@
 export type Priority = "low" | "medium" | "high";
 export type TaskStatus = "pending" | "done";
+export type TaskCategory = "work" | "billing";
 
 export type Task = {
   id: number;
@@ -8,6 +9,7 @@ export type Task = {
   due_date: string | null;
   priority: Priority;
   status: TaskStatus;
+  category: TaskCategory;
   client_id: number | null;
   business_name: string | null;
   assignee_id: number;

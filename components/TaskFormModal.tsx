@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import type { Priority, Task, TeamMember } from "@/lib/tasks";
+import type { Priority, Task, TaskCategory, TeamMember } from "@/lib/tasks";
 import type { Client } from "@/lib/clients";
 
 type Props = {
@@ -21,6 +21,7 @@ type FormState = {
   description: string;
   due_date: string;
   priority: Priority;
+  category: TaskCategory;
   assignee_id: string; // "" or numeric string
   client_id: string; // "" or numeric string
 };
@@ -36,6 +37,7 @@ function initialState(
       description: "",
       due_date: "",
       priority: "medium",
+      category: "work",
       assignee_id: team.length > 0 ? String(team[0].id) : "",
       client_id: defaultClientId != null ? String(defaultClientId) : "",
     };
@@ -45,6 +47,7 @@ function initialState(
     description: task.description ?? "",
     due_date: task.due_date ?? "",
     priority: task.priority,
+    category: task.category,
     assignee_id: String(task.assignee_id),
     client_id: task.client_id !== null ? String(task.client_id) : "",
   };
@@ -120,6 +123,7 @@ export function TaskFormModal({
       description: form.description.trim() === "" ? null : form.description,
       due_date: form.due_date === "" ? null : form.due_date,
       priority: form.priority,
+      category: form.category,
       assignee_id: assigneeId,
       client_id: clientId,
     };
@@ -211,6 +215,17 @@ export function TaskFormModal({
               </select>
             </Field>
           </div>
+
+          <Field label="Category">
+            <select
+              value={form.category}
+              onChange={(e) => update("category", e.target.value as TaskCategory)}
+              className={inputClass}
+            >
+              <option value="work">Work</option>
+              <option value="billing">Billing</option>
+            </select>
+          </Field>
 
           <Field label="Assignee" required>
             <select

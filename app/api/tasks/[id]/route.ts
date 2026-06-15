@@ -8,6 +8,7 @@ type TaskRow = {
   due_date: string | Date | null;
   priority: "low" | "medium" | "high";
   status: "pending" | "done";
+  category: "work" | "billing";
   client_id: number | null;
   business_name: string | null;
   assignee_id: number;
@@ -22,6 +23,7 @@ const ALLOWED_COLUMNS = [
   "due_date",
   "priority",
   "status",
+  "category",
   "client_id",
   "assignee_id",
 ] as const;
@@ -120,6 +122,15 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         );
       }
     }
+    if ("category" in updates) {
+      const v = updates.category;
+      if (v !== "work" && v !== "billing") {
+        return NextResponse.json(
+          { error: "category must be 'work' or 'billing'" },
+          { status: 400 },
+        );
+      }
+    }
     if ("client_id" in updates) {
       const v = updates.client_id;
       if (v !== null) {
@@ -184,10 +195,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         UPDATE tasks
         SET ${setClauses.join(", ")}
         WHERE id = $${values.length}
-        RETURNING id, title, description, due_date, priority, status,
+        RETURNING id, title, description, due_date, priority, status, category,
                   client_id, assignee_id, created_at, completed_at
       )
-      SELECT u.id, u.title, u.description, u.due_date, u.priority, u.status,
+      SELECT u.id, u.title, u.description, u.due_date, u.priority, u.status, u.category,
              u.client_id, c.business_name, u.assignee_id, tm.name AS assignee_name,
              u.created_at, u.completed_at
       FROM updated u

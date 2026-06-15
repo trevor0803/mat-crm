@@ -42,11 +42,26 @@ export const CREATE_TASKS_TABLE = `
     due_date DATE,
     priority TEXT NOT NULL DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high')),
     status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'done')),
+    category TEXT NOT NULL DEFAULT 'work' CHECK (category IN ('work', 'billing')),
     client_id INTEGER REFERENCES clients(id) ON DELETE SET NULL,
     assignee_id INTEGER NOT NULL REFERENCES team_members(id),
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     completed_at TIMESTAMP
   );
+`;
+
+// For databases created before the `category` column existed: add the column
+// (idempotent), then classify any pre-existing auto-generated billing tasks —
+// those created by the billing cron always have a "Bill <name> $<amount>" title.
+export const ALTER_TASKS_ADD_CATEGORY = `
+  ALTER TABLE tasks
+    ADD COLUMN IF NOT EXISTS category TEXT NOT NULL DEFAULT 'work'
+      CHECK (category IN ('work', 'billing'));
+`;
+
+export const BACKFILL_TASKS_CATEGORY = `
+  UPDATE tasks SET category = 'billing'
+  WHERE category = 'work' AND title LIKE 'Bill %$%';
 `;
 
 export const CREATE_MEDIA_FILES_TABLE = `

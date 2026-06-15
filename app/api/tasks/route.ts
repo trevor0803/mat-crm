@@ -8,6 +8,7 @@ type TaskRow = {
   due_date: string | Date | null;
   priority: "low" | "medium" | "high";
   status: "pending" | "done";
+  category: "work" | "billing";
   client_id: number | null;
   business_name: string | null;
   assignee_id: number;
@@ -17,7 +18,7 @@ type TaskRow = {
 };
 
 const SELECT_COLUMNS = `
-  t.id, t.title, t.description, t.due_date, t.priority, t.status,
+  t.id, t.title, t.description, t.due_date, t.priority, t.status, t.category,
   t.client_id, c.business_name, t.assignee_id, tm.name AS assignee_name,
   t.created_at, t.completed_at
 `;
@@ -54,6 +55,7 @@ export async function GET(req: NextRequest) {
   try {
     const url = new URL(req.url);
     const statusParam = url.searchParams.get("status") ?? "pending";
+    const categoryParam = url.searchParams.get("category") ?? "all";
     const clientIdRaw = url.searchParams.get("client_id");
     const assigneeIdRaw = url.searchParams.get("assignee_id");
 
@@ -64,12 +66,24 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    if (!["work", "billing", "all"].includes(categoryParam)) {
+      return NextResponse.json(
+        { error: "category must be 'work', 'billing', or 'all'" },
+        { status: 400 },
+      );
+    }
+
     const where: string[] = [];
     const values: unknown[] = [];
 
     if (statusParam !== "all") {
       values.push(statusParam);
       where.push(`t.status = $${values.length}`);
+    }
+
+    if (categoryParam !== "all") {
+      values.push(categoryParam);
+      where.push(`t.category = $${values.length}`);
     }
 
     if (clientIdRaw !== null) {
@@ -128,6 +142,7 @@ export async function POST(req: NextRequest) {
       description,
       due_date,
       priority,
+      category,
       client_id,
       assignee_id,
     } = body as Record<string, unknown>;
@@ -161,6 +176,17 @@ export async function POST(req: NextRequest) {
         );
       }
       priorityVal = priority;
+    }
+
+    let categoryVal: "work" | "billing" = "work";
+    if (category !== undefined && category !== null) {
+      if (category !== "work" && category !== "billing") {
+        return NextResponse.json(
+          { error: "category must be 'work' or 'billing'" },
+          { status: 400 },
+        );
+      }
+      categoryVal = category;
     }
 
     const assigneeIdNum =
@@ -215,13 +241,13 @@ export async function POST(req: NextRequest) {
 
     const { rows } = await sql<TaskRow>`
       WITH inserted AS (
-        INSERT INTO tasks (title, description, due_date, priority, client_id, assignee_id)
+        INSERT INTO tasks (title, description, due_date, priority, category, client_id, assignee_id)
         VALUES (${trimmedTitle}, ${descriptionVal}, ${dueDateVal}, ${priorityVal},
-                ${clientIdVal}, ${assigneeIdNum})
-        RETURNING id, title, description, due_date, priority, status,
+                ${categoryVal}, ${clientIdVal}, ${assigneeIdNum})
+        RETURNING id, title, description, due_date, priority, status, category,
                   client_id, assignee_id, created_at, completed_at
       )
-      SELECT i.id, i.title, i.description, i.due_date, i.priority, i.status,
+      SELECT i.id, i.title, i.description, i.due_date, i.priority, i.status, i.category,
              i.client_id, c.business_name, i.assignee_id, tm.name AS assignee_name,
              i.created_at, i.completed_at
       FROM inserted i

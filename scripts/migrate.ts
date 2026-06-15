@@ -4,6 +4,8 @@ import {
   CREATE_CHATTER_NOTES_TABLE,
   CREATE_TEAM_MEMBERS_TABLE,
   CREATE_TASKS_TABLE,
+  ALTER_TASKS_ADD_CATEGORY,
+  BACKFILL_TASKS_CATEGORY,
   CREATE_MEDIA_FILES_TABLE,
   CREATE_MEDIA_FILES_INDEX,
 } from "../lib/db";
@@ -19,6 +21,8 @@ async function migrate() {
   console.log("team_members: ready");
 
   await sql.query(CREATE_TASKS_TABLE);
+  await sql.query(ALTER_TASKS_ADD_CATEGORY);
+  await sql.query(BACKFILL_TASKS_CATEGORY);
   console.log("tasks: ready");
 
   await sql.query(CREATE_MEDIA_FILES_TABLE);

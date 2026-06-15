@@ -29,6 +29,7 @@ import { TaskList } from "@/components/TaskList";
 const TASKS_DASHBOARD_LIMIT = 10;
 
 type StatusTab = "pending" | "done";
+type CategoryTab = "all" | "work" | "billing";
 
 type SortKey =
   | "business_name"
@@ -59,6 +60,7 @@ export default function DashboardPage() {
   const [tasksError, setTasksError] = useState<string | null>(null);
   const [assigneeFilter, setAssigneeFilter] = useState<string>("all"); // "all" or numeric id
   const [statusTab, setStatusTab] = useState<StatusTab>("pending");
+  const [categoryTab, setCategoryTab] = useState<CategoryTab>("all");
   const [showAllTasks, setShowAllTasks] = useState(false);
 
   const [taskModalOpen, setTaskModalOpen] = useState(false);
@@ -95,10 +97,11 @@ export default function DashboardPage() {
     }
   }
 
-  async function fetchTasks(status: StatusTab, assignee: string) {
+  async function fetchTasks(status: StatusTab, assignee: string, category: CategoryTab) {
     setTasksError(null);
     try {
       const params = new URLSearchParams({ status });
+      if (category !== "all") params.set("category", category);
       if (assignee !== "all") params.set("assignee_id", assignee);
       const res = await fetch(`/api/tasks?${params.toString()}`, { cache: "no-store" });
       if (!res.ok) throw new Error(`Failed to fetch tasks (${res.status})`);
@@ -118,8 +121,8 @@ export default function DashboardPage() {
   useEffect(() => {
     setTasks(null);
     setShowAllTasks(false);
-    fetchTasks(statusTab, assigneeFilter);
-  }, [statusTab, assigneeFilter]);
+    fetchTasks(statusTab, assigneeFilter, categoryTab);
+  }, [statusTab, assigneeFilter, categoryTab]);
 
   const stats = useMemo(() => computeStats(clients ?? []), [clients]);
   const upcoming = useMemo(() => computeUpcoming(clients ?? []), [clients]);
@@ -220,14 +223,14 @@ export default function DashboardPage() {
         throw new Error(body?.error ?? `Update failed (${res.status})`);
       }
       // Refresh so it reflects the active tab/filter ordering.
-      await fetchTasks(statusTab, assigneeFilter);
+      await fetchTasks(statusTab, assigneeFilter, categoryTab);
       toast.success(next === "done" ? "Task marked done" : "Task reopened");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to update task";
       setTasksError(message);
       toast.error(message);
       // rollback
-      await fetchTasks(statusTab, assigneeFilter);
+      await fetchTasks(statusTab, assigneeFilter, categoryTab);
     }
   }
 
@@ -241,7 +244,7 @@ export default function DashboardPage() {
         throw new Error(body?.error ?? `Delete failed (${res.status})`);
       }
       setDeleteTaskTarget(null);
-      await fetchTasks(statusTab, assigneeFilter);
+      await fetchTasks(statusTab, assigneeFilter, categoryTab);
       toast.success("Task deleted");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Delete failed";
@@ -265,7 +268,7 @@ export default function DashboardPage() {
         throw new Error(body?.error ?? `Backfill failed (${res.status})`);
       }
       const data = await res.json();
-      await fetchTasks(statusTab, assigneeFilter);
+      await fetchTasks(statusTab, assigneeFilter, categoryTab);
       const created = data.totalCreated ?? 0;
       toast.success(
         `Backfilled ${created} billing task${created === 1 ? "" : "s"}` +
@@ -323,6 +326,27 @@ export default function DashboardPage() {
                 </option>
               ))}
             </select>
+
+            <div className="inline-flex overflow-hidden rounded-md border border-white/10">
+              <TabButton
+                active={categoryTab === "all"}
+                onClick={() => setCategoryTab("all")}
+              >
+                All
+              </TabButton>
+              <TabButton
+                active={categoryTab === "work"}
+                onClick={() => setCategoryTab("work")}
+              >
+                Work
+              </TabButton>
+              <TabButton
+                active={categoryTab === "billing"}
+                onClick={() => setCategoryTab("billing")}
+              >
+                Billing
+              </TabButton>
+            </div>
 
             <div className="inline-flex overflow-hidden rounded-md border border-white/10">
               <TabButton
@@ -462,7 +486,7 @@ export default function DashboardPage() {
         clients={clients ?? []}
         defaultClientId={taskDefaultClientId}
         onClose={closeTaskModal}
-        onSaved={() => fetchTasks(statusTab, assigneeFilter)}
+        onSaved={() => fetchTasks(statusTab, assigneeFilter, categoryTab)}
       />
 
       <ConfirmDialog
