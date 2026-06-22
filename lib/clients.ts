@@ -7,8 +7,18 @@ export type Client = {
   active: boolean;
   billing_method: string | null;
   ad_spend_dates: string | null;
+  ad_review_enabled: boolean;
+  ad_review_next_due: string | null;
   created_at: string;
 };
+
+// Recurring ad-performance review: every client enrolled via the per-account
+// Start button (or the staggered bulk rollout) gets a task with this exact
+// title every AD_REVIEW_INTERVAL_DAYS, assigned to AD_REVIEW_ASSIGNEE. The
+// title is fixed so the cron can dedup on client + title + due_date.
+export const AD_REVIEW_TITLE = "Check ad performance";
+export const AD_REVIEW_ASSIGNEE = "Mike";
+export const AD_REVIEW_INTERVAL_DAYS = 7;
 
 export type ClientFormValues = {
   business_name: string;

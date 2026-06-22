@@ -10,6 +10,8 @@ type ClientRow = {
   active: boolean;
   billing_method: string | null;
   ad_spend_dates: string | null;
+  ad_review_enabled: boolean;
+  ad_review_next_due: string | Date | null;
   created_at: string;
 };
 
@@ -25,8 +27,23 @@ const ALLOWED_COLUMNS = [
 
 type AllowedColumn = (typeof ALLOWED_COLUMNS)[number];
 
+function normalizeDate(d: string | Date | null): string | null {
+  if (d === null || d === undefined) return null;
+  if (d instanceof Date) {
+    const y = d.getUTCFullYear();
+    const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+    const day = String(d.getUTCDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+  return d.slice(0, 10);
+}
+
 function normalize(row: ClientRow) {
-  return { ...row, retainer: Number(row.retainer) };
+  return {
+    ...row,
+    retainer: Number(row.retainer),
+    ad_review_next_due: normalizeDate(row.ad_review_next_due),
+  };
 }
 
 function parseId(raw: string): number | null {
@@ -43,7 +60,8 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 
     const { rows } = await sql<ClientRow>`
       SELECT id, business_name, uses_ghl, retainer, bill_date, active,
-             billing_method, ad_spend_dates, created_at
+             billing_method, ad_spend_dates, ad_review_enabled,
+             ad_review_next_due, created_at
       FROM clients
       WHERE id = ${id}
     `;
@@ -128,7 +146,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       SET ${setClauses}
       WHERE id = $${values.length}
       RETURNING id, business_name, uses_ghl, retainer, bill_date, active,
-                billing_method, ad_spend_dates, created_at
+                billing_method, ad_spend_dates, ad_review_enabled,
+                ad_review_next_due, created_at
     `;
 
     const { rows } = await sql.query<ClientRow>(text, values);

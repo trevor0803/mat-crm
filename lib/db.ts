@@ -12,8 +12,23 @@ export const CREATE_CLIENTS_TABLE = `
     active BOOLEAN NOT NULL DEFAULT TRUE,
     billing_method TEXT,
     ad_spend_dates TEXT,
+    ad_review_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+    ad_review_next_due DATE,
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
   );
+`;
+
+// For databases created before the recurring ad-performance review feature:
+// add the enrollment flag + next-due anchor (both idempotent). The daily
+// ad-review cron only acts on clients where ad_review_enabled = TRUE.
+export const ALTER_CLIENTS_ADD_AD_REVIEW = `
+  ALTER TABLE clients
+    ADD COLUMN IF NOT EXISTS ad_review_enabled BOOLEAN NOT NULL DEFAULT FALSE;
+`;
+
+export const ALTER_CLIENTS_ADD_AD_REVIEW_NEXT_DUE = `
+  ALTER TABLE clients
+    ADD COLUMN IF NOT EXISTS ad_review_next_due DATE;
 `;
 
 export const CREATE_CHATTER_NOTES_TABLE = `

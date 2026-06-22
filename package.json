@@ -9,7 +9,8 @@
     "lint": "next lint",
     "db:migrate": "tsx --env-file=.env.development.local scripts/migrate.ts",
     "db:seed": "tsx --env-file=.env.development.local scripts/seed.ts",
-    "db:seed-team": "tsx --env-file=.env.development.local scripts/seed-team.ts"
+    "db:seed-team": "tsx --env-file=.env.development.local scripts/seed-team.ts",
+    "db:enroll-ad-review": "tsx --env-file=.env.development.local scripts/enroll-ad-review.ts"
   },
   "dependencies": {
     "@vercel/blob": "^2.4.0",

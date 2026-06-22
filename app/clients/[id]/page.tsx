@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { ArrowLeft, Pencil, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Pencil, Plus, Repeat, Trash2 } from "lucide-react";
 import { Client, formatCurrency } from "@/lib/clients";
 import { Note } from "@/lib/notes";
 import { Task, TeamMember } from "@/lib/tasks";
@@ -33,6 +33,8 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  const [adReviewBusy, setAdReviewBusy] = useState(false);
 
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -150,6 +152,35 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
       setTasksError(message);
       toast.error(message);
       await fetchTasks();
+    }
+  }
+
+  // Start/stop the recurring weekly "Check ad performance" task (assigned to
+  // Mike). Start creates the first task immediately; stop halts future ones.
+  async function toggleAdReview() {
+    if (!client) return;
+    const action = client.ad_review_enabled ? "stop" : "start";
+    setAdReviewBusy(true);
+    try {
+      const res = await fetch(`/api/clients/${client.id}/ad-review`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error ?? `Request failed (${res.status})`);
+      }
+      await Promise.all([fetchClient(), fetchTasks()]);
+      toast.success(
+        action === "start"
+          ? "Weekly ad-performance task started"
+          : "Recurring ad-performance task stopped",
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update recurring task");
+    } finally {
+      setAdReviewBusy(false);
     }
   }
 
@@ -417,15 +448,43 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
               <span className="text-sm font-normal text-gray-400">({tasks.length})</span>
             )}
           </h2>
-          <button
-            type="button"
-            onClick={openTaskCreate}
-            className="inline-flex items-center gap-1.5 rounded-md bg-brand-gold px-3 py-1.5 text-sm font-semibold text-brand-navy hover:brightness-110"
-          >
-            <Plus className="h-4 w-4" />
-            New Task
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={toggleAdReview}
+              disabled={adReviewBusy}
+              className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${
+                client.ad_review_enabled
+                  ? "border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/20"
+                  : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"
+              }`}
+              title="Weekly 'Check ad performance' task for Mike"
+            >
+              <Repeat className="h-4 w-4" />
+              {adReviewBusy
+                ? "Saving..."
+                : client.ad_review_enabled
+                  ? "Stop recurring ad check"
+                  : "Start weekly ad check"}
+            </button>
+            <button
+              type="button"
+              onClick={openTaskCreate}
+              className="inline-flex items-center gap-1.5 rounded-md bg-brand-gold px-3 py-1.5 text-sm font-semibold text-brand-navy hover:brightness-110"
+            >
+              <Plus className="h-4 w-4" />
+              New Task
+            </button>
+          </div>
         </div>
+
+        {client.ad_review_enabled && (
+          <p className="mb-3 inline-flex items-center gap-1.5 text-xs text-gray-400">
+            <Repeat className="h-3 w-3 text-brand-gold" />
+            Recurs weekly for Mike
+            {client.ad_review_next_due ? ` · next ${client.ad_review_next_due}` : ""}
+          </p>
+        )}
 
         {tasksError && (
           <div className="mb-3 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">

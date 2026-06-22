@@ -10,18 +10,36 @@ type ClientRow = {
   active: boolean;
   billing_method: string | null;
   ad_spend_dates: string | null;
+  ad_review_enabled: boolean;
+  ad_review_next_due: string | Date | null;
   created_at: string;
 };
 
+function normalizeDate(d: string | Date | null): string | null {
+  if (d === null || d === undefined) return null;
+  if (d instanceof Date) {
+    const y = d.getUTCFullYear();
+    const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+    const day = String(d.getUTCDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+  return d.slice(0, 10);
+}
+
 function normalize(row: ClientRow) {
-  return { ...row, retainer: Number(row.retainer) };
+  return {
+    ...row,
+    retainer: Number(row.retainer),
+    ad_review_next_due: normalizeDate(row.ad_review_next_due),
+  };
 }
 
 export async function GET() {
   try {
     const { rows } = await sql<ClientRow>`
       SELECT id, business_name, uses_ghl, retainer, bill_date, active,
-             billing_method, ad_spend_dates, created_at
+             billing_method, ad_spend_dates, ad_review_enabled,
+             ad_review_next_due, created_at
       FROM clients
       ORDER BY business_name ASC
     `;
@@ -93,7 +111,8 @@ export async function POST(req: NextRequest) {
         (${business_name.trim()}, ${uses_ghl}, ${retainerNum}, ${bill_date ?? null},
          ${active}, ${billing_method ?? null}, ${ad_spend_dates ?? null})
       RETURNING id, business_name, uses_ghl, retainer, bill_date, active,
-                billing_method, ad_spend_dates, created_at
+                billing_method, ad_spend_dates, ad_review_enabled,
+                ad_review_next_due, created_at
     `;
 
     return NextResponse.json(normalize(rows[0]), { status: 201 });

@@ -1,6 +1,8 @@
 import {
   sql,
   CREATE_CLIENTS_TABLE,
+  ALTER_CLIENTS_ADD_AD_REVIEW,
+  ALTER_CLIENTS_ADD_AD_REVIEW_NEXT_DUE,
   CREATE_CHATTER_NOTES_TABLE,
   CREATE_TEAM_MEMBERS_TABLE,
   CREATE_TASKS_TABLE,
@@ -12,6 +14,8 @@ import {
 
 async function migrate() {
   await sql.query(CREATE_CLIENTS_TABLE);
+  await sql.query(ALTER_CLIENTS_ADD_AD_REVIEW);
+  await sql.query(ALTER_CLIENTS_ADD_AD_REVIEW_NEXT_DUE);
   console.log("clients: ready");
 
   await sql.query(CREATE_CHATTER_NOTES_TABLE);
