@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   ChevronLeft,
@@ -12,6 +12,8 @@ import {
   Brain,
   Trash2,
   CalendarDays,
+  Bell,
+  BellOff,
 } from "lucide-react";
 import {
   SLOT_TIMES,
@@ -59,6 +61,9 @@ export default function PlannerPage() {
   const [focus, setFocus] = useState(false);
   const [now, setNow] = useState(() => new Date());
   const [confirmClear, setConfirmClear] = useState(false);
+  const [alertsOn, setAlertsOn] = useState(false);
+  // The slot we've already announced, so each block notifies only once.
+  const notifiedSlotRef = useRef<string | null>(null);
 
   const todayStr = toDateString(now);
   const isToday = date === todayStr;
@@ -68,6 +73,53 @@ export default function PlannerPage() {
     const id = setInterval(() => setNow(new Date()), 15_000);
     return () => clearInterval(id);
   }, []);
+
+  // Restore the alert preference (only if the browser still has permission).
+  useEffect(() => {
+    if (typeof Notification === "undefined") return;
+    if (localStorage.getItem("planner-alerts") === "1" && Notification.permission === "granted") {
+      setAlertsOn(true);
+    }
+  }, []);
+
+  async function enableAlerts() {
+    if (typeof Notification === "undefined") {
+      toast.error("This browser doesn't support notifications.");
+      return;
+    }
+    let perm = Notification.permission;
+    if (perm === "default") perm = await Notification.requestPermission();
+    if (perm !== "granted") {
+      toast.error("Notifications are blocked — turn them on in your browser's site settings.");
+      return;
+    }
+    setAlertsOn(true);
+    localStorage.setItem("planner-alerts", "1");
+    // Anchor to the current block so we don't immediately re-announce it.
+    notifiedSlotRef.current = currentSlot(new Date())?.slotTime ?? null;
+    new Notification("Planner alerts on", {
+      body: "Keep this tab open — you'll get a nudge at the start of each block.",
+    });
+  }
+
+  function disableAlerts() {
+    setAlertsOn(false);
+    localStorage.removeItem("planner-alerts");
+  }
+
+  // Fire a notification when the clock crosses into a new block (today only,
+  // while this tab is open). Re-runs on each 15s tick; the ref dedupes.
+  useEffect(() => {
+    if (!alertsOn || !isToday) return;
+    if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
+    const c = currentSlot(now);
+    if (!c || notifiedSlotRef.current === c.slotTime) return;
+    notifiedSlotRef.current = c.slotTime;
+    const s = slots[c.slotTime];
+    new Notification(`Now · ${formatSlotLabel(c.slotTime)}`, {
+      body: s?.title ? s.title : "No plan for this block — pick one thing.",
+    });
+  }, [now, alertsOn, isToday, slots]);
 
   const load = useCallback(async (d: string) => {
     setLoading(true);
@@ -196,6 +248,22 @@ export default function PlannerPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={alertsOn ? disableAlerts : enableAlerts}
+            title={
+              alertsOn
+                ? "Block alerts are on (keep this tab open). Click to turn off."
+                : "Get a browser notification at the start of each block."
+            }
+            className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition ${
+              alertsOn
+                ? "border-brand-gold/50 bg-brand-gold/15 text-brand-gold"
+                : "border-brand-card text-gray-300 hover:bg-brand-card"
+            }`}
+          >
+            {alertsOn ? <Bell size={16} /> : <BellOff size={16} />}
+            {alertsOn ? "Alerts on" : "Enable alerts"}
+          </button>
           <button
             onClick={() => {
               if (!isToday) setDate(todayStr);
