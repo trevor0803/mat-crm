@@ -96,3 +96,26 @@ export const CREATE_MEDIA_FILES_TABLE = `
 export const CREATE_MEDIA_FILES_INDEX = `
   CREATE INDEX IF NOT EXISTS idx_media_files_client_id ON media_files(client_id);
 `;
+
+// Daily Planner: one row per filled 30-minute slot of a given day.
+// A (plan_date, slot_time) is unique so the planner can upsert per slot;
+// an empty slot simply has no row. task_id optionally links a slot to a CRM
+// task (ON DELETE SET NULL keeps the plan intact if the task is removed).
+export const CREATE_PLANNER_SLOTS_TABLE = `
+  CREATE TABLE IF NOT EXISTS planner_slots (
+    id SERIAL PRIMARY KEY,
+    plan_date DATE NOT NULL,
+    slot_time TEXT NOT NULL,
+    title TEXT NOT NULL DEFAULT '',
+    task_id INTEGER REFERENCES tasks(id) ON DELETE SET NULL,
+    energy TEXT CHECK (energy IN ('deep', 'admin', 'meeting', 'break', 'buffer')),
+    done BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    UNIQUE (plan_date, slot_time)
+  );
+`;
+
+export const CREATE_PLANNER_SLOTS_INDEX = `
+  CREATE INDEX IF NOT EXISTS idx_planner_slots_date ON planner_slots(plan_date);
+`;

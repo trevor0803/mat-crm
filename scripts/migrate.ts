@@ -10,6 +10,8 @@ import {
   BACKFILL_TASKS_CATEGORY,
   CREATE_MEDIA_FILES_TABLE,
   CREATE_MEDIA_FILES_INDEX,
+  CREATE_PLANNER_SLOTS_TABLE,
+  CREATE_PLANNER_SLOTS_INDEX,
 } from "../lib/db";
 
 async function migrate() {
@@ -32,6 +34,10 @@ async function migrate() {
   await sql.query(CREATE_MEDIA_FILES_TABLE);
   await sql.query(CREATE_MEDIA_FILES_INDEX);
   console.log("media_files: ready");
+
+  await sql.query(CREATE_PLANNER_SLOTS_TABLE);
+  await sql.query(CREATE_PLANNER_SLOTS_INDEX);
+  console.log("planner_slots: ready");
 
   console.log("Migration complete.");
 }
