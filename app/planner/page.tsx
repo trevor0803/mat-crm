@@ -15,9 +15,6 @@ import {
 } from "lucide-react";
 import {
   SLOT_TIMES,
-  ENERGIES,
-  ENERGY_META,
-  type SlotEnergy,
   type PlannerSlot,
   formatSlotLabel,
   formatDateHeading,
@@ -354,7 +351,6 @@ function SlotRow({
   onSave: (patch: Partial<PlannerSlot>) => void;
 }) {
   const title = slot?.title ?? "";
-  const energy = slot?.energy ?? null;
   const done = slot?.done ?? false;
   const linked = Boolean(slot?.task_id);
 
@@ -364,8 +360,6 @@ function SlotRow({
   const commit = () => {
     if (draft.trim() !== title) onSave({ title: draft.trim() });
   };
-
-  const energyMeta = energy ? ENERGY_META[energy] : null;
 
   return (
     <div
@@ -392,9 +386,6 @@ function SlotRow({
         )}
       </div>
 
-      {/* energy bar */}
-      <div className={`w-1 shrink-0 rounded-full ${energyMeta ? energyMeta.dot : "bg-transparent"}`} />
-
       {/* title input */}
       <input
         value={draft}
@@ -408,25 +399,6 @@ function SlotRow({
           done ? "text-gray-500 line-through" : "text-gray-100"
         }`}
       />
-
-      {/* energy dots */}
-      <div className="flex shrink-0 items-center gap-1 pr-1">
-        {ENERGIES.map((e) => {
-          const meta = ENERGY_META[e];
-          const active = energy === e;
-          return (
-            <button
-              key={e}
-              title={meta.label}
-              aria-label={meta.label}
-              onClick={() => onSave({ energy: active ? null : e })}
-              className={`h-3 w-3 rounded-full transition ${meta.dot} ${
-                active ? "ring-2 ring-white/70" : "opacity-30 hover:opacity-70"
-              }`}
-            />
-          );
-        })}
-      </div>
 
       {/* done toggle */}
       <button
