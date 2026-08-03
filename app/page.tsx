@@ -21,6 +21,7 @@ import {
   upcomingWindow,
 } from "@/lib/clients";
 import { Task, TeamMember } from "@/lib/tasks";
+import { CRM_CHANGED_EVENT } from "@/lib/command";
 import { ClientFormModal } from "@/components/ClientFormModal";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { TaskFormModal } from "@/components/TaskFormModal";
@@ -122,6 +123,18 @@ export default function DashboardPage() {
     setTasks(null);
     setShowAllTasks(false);
     fetchTasks(statusTab, assigneeFilter, categoryTab);
+  }, [statusTab, assigneeFilter, categoryTab]);
+
+  // The Command Box writes straight to the API, so pull fresh data whenever
+  // it saves instead of making the user reload the page.
+  useEffect(() => {
+    function onCrmChanged() {
+      fetchClients();
+      fetchTeam();
+      fetchTasks(statusTab, assigneeFilter, categoryTab);
+    }
+    window.addEventListener(CRM_CHANGED_EVENT, onCrmChanged);
+    return () => window.removeEventListener(CRM_CHANGED_EVENT, onCrmChanged);
   }, [statusTab, assigneeFilter, categoryTab]);
 
   const stats = useMemo(() => computeStats(clients ?? []), [clients]);

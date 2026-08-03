@@ -24,6 +24,7 @@ import {
   shiftDate,
   currentSlot,
 } from "@/lib/planner";
+import { CRM_CHANGED_EVENT } from "@/lib/command";
 
 type PlannerTask = {
   id: number;
@@ -141,6 +142,15 @@ export default function PlannerPage() {
 
   useEffect(() => {
     load(date);
+  }, [date, load]);
+
+  // Reload the day whenever the Command Box blocks time or changes a task.
+  useEffect(() => {
+    function onCrmChanged() {
+      load(date);
+    }
+    window.addEventListener(CRM_CHANGED_EVENT, onCrmChanged);
+    return () => window.removeEventListener(CRM_CHANGED_EVENT, onCrmChanged);
   }, [date, load]);
 
   // Persist one slot. `patch` is merged over the slot's current values; the

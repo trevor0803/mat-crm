@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "test:command": "tsx scripts/command.test.ts",
     "db:migrate": "tsx --env-file=.env.development.local scripts/migrate.ts",
     "db:seed": "tsx --env-file=.env.development.local scripts/seed.ts",
     "db:seed-team": "tsx --env-file=.env.development.local scripts/seed-team.ts",

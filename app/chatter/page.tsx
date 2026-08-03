@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Client } from "@/lib/clients";
 import { Note } from "@/lib/notes";
+import { CRM_CHANGED_EVENT } from "@/lib/command";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { NotesFeed } from "@/components/NotesFeed";
 
@@ -38,6 +39,15 @@ export default function ChatterPage() {
     Promise.all([fetchClients(), fetchNotes()]).catch((err) => {
       setLoadError(err instanceof Error ? err.message : "Failed to load");
     });
+  }, []);
+
+  // Refresh when the Command Box adds a note or client.
+  useEffect(() => {
+    function onCrmChanged() {
+      Promise.all([fetchClients(), fetchNotes()]).catch(() => {});
+    }
+    window.addEventListener(CRM_CHANGED_EVENT, onCrmChanged);
+    return () => window.removeEventListener(CRM_CHANGED_EVENT, onCrmChanged);
   }, []);
 
   const sortedClients = useMemo(

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Toaster } from "sonner";
 import { Header } from "@/components/Header";
+import { CommandBox } from "@/components/CommandBox";
 import { Footer } from "@/components/Footer";
 import "./globals.css";
 
@@ -18,6 +19,7 @@ export default function RootLayout({
     <html lang="en">
       <body className="flex min-h-screen flex-col bg-brand-navy text-gray-100 antialiased">
         <Header />
+        <CommandBox />
         <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10">
           {children}
         </main>

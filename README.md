@@ -13,7 +13,69 @@ agency day-to-day.
 - **File storage:** Vercel Blob
 - **Toasts:** sonner
 - **Icons:** lucide-react
+- **Command box:** Claude (Anthropic Messages API) + Web Speech API
 - **Hosting:** Vercel
+
+## Command Box (talk/type to the CRM)
+
+The bar under the header turns a plain sentence into CRM changes. Type it, or
+hit the mic and say it — Chrome and Edge transcribe locally, and it runs
+automatically when you stop talking.
+
+> "add a task for McGrath Plumbing to check the landing page due tomorrow for Trevor"
+
+Nothing is written until you review the preview card and press **Save**. Task
+cards are editable inline, so a misheard client or date is a one-click fix.
+
+**What it can do:** create tasks · mark tasks done · reschedule, reassign,
+re-prioritise or rename tasks · delete tasks · add clients · update client
+retainer / bill date / billing method / active status / ad-review settings ·
+add chatter notes · block time on the planner · answer questions about what's
+in the CRM ("what's due today", "how much does McGrath pay us").
+
+**Shortcut:** `Cmd/Ctrl + K` focuses the box from anywhere. `Enter` runs it,
+`Shift + Enter` adds a line, `Esc` discards a preview.
+
+### One-time setup
+
+1. Get an API key at <https://console.anthropic.com> → **API Keys**.
+2. Add it locally to `.env.local` **and** `.env.development.local`:
+
+   ```
+   ANTHROPIC_API_KEY=sk-ant-...
+   ```
+
+3. Add the same key to Vercel: project → **Settings → Environment Variables**
+   → name `ANTHROPIC_API_KEY`, checked for Production, Preview and Development.
+   Redeploy (or push to `main`) for it to take effect.
+
+Optional overrides:
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `COMMAND_MODEL` | `claude-sonnet-4-6` | Swap the model (e.g. a cheaper Haiku). |
+| `COMMAND_DEFAULT_ASSIGNEE` | `Trevor` | Who gets a task when no name is said. |
+
+### How it's wired
+
+| File | Role |
+| --- | --- |
+| `components/CommandBox.tsx` | The bar, the mic, and the preview cards. |
+| `lib/command.ts` | Types + helpers shared by browser and server. |
+| `lib/command-server.ts` | CRM context, the Claude call, validation, SQL. |
+| `app/api/command/parse` | Sentence → preview plan. Read-only. |
+| `app/api/command/execute` | Preview plan → database writes. |
+
+Every payload is re-validated server-side at execute time against freshly
+loaded CRM state, so an edited or stale preview can't write bad data. Pages
+that load data client-side listen for the `crm:changed` window event and
+refetch after a save.
+
+Run the validator tests (no API key or database needed):
+
+```bash
+npm run test:command
+```
 
 ## Local Setup
 
