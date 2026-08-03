@@ -9,6 +9,7 @@ type ClientRow = {
   id: number;
   business_name: string;
   ad_review_next_due: string | Date | null;
+  ad_review_interval_days: number;
 };
 
 export type AdReviewRunResult = {
@@ -67,9 +68,10 @@ async function getAdReviewAssigneeId(): Promise<number> {
 }
 
 // Creates the ad-review task for one client due on `dueISO` (idempotent), then
-// advances ad_review_next_due forward by whole weeks until it is strictly after
-// `todayISO` — so a missed cron run never produces a backlog burst, just one
-// catch-up task and a re-aligned anchor. Returns whether a task was created.
+// advances ad_review_next_due forward by the client's own interval until it is
+// strictly after `todayISO` — so a missed cron run never produces a backlog
+// burst, just one catch-up task and a re-aligned anchor. Returns whether a
+// task was created.
 async function generateForClient(
   client: ClientRow,
   dueISO: string,
@@ -94,9 +96,13 @@ async function generateForClient(
     created = true;
   }
 
-  let next = addDaysISO(dueISO, AD_REVIEW_INTERVAL_DAYS);
+  const interval =
+    Number.isInteger(client.ad_review_interval_days) && client.ad_review_interval_days > 0
+      ? client.ad_review_interval_days
+      : AD_REVIEW_INTERVAL_DAYS;
+  let next = addDaysISO(dueISO, interval);
   while (next <= todayISO) {
-    next = addDaysISO(next, AD_REVIEW_INTERVAL_DAYS);
+    next = addDaysISO(next, interval);
   }
   await sql`
     UPDATE clients SET ad_review_next_due = ${next} WHERE id = ${client.id}
@@ -115,7 +121,7 @@ export async function runAdReviewTasks(): Promise<AdReviewRunResult> {
   const assigneeId = await getAdReviewAssigneeId();
 
   const { rows: clients } = await sql<ClientRow>`
-    SELECT id, business_name, ad_review_next_due
+    SELECT id, business_name, ad_review_next_due, ad_review_interval_days
     FROM clients
     WHERE ad_review_enabled = TRUE
       AND ad_review_next_due IS NOT NULL
@@ -167,7 +173,7 @@ export async function startAdReviewForClient(
     UPDATE clients
     SET ad_review_enabled = TRUE, ad_review_next_due = ${todayISO}
     WHERE id = ${clientId}
-    RETURNING id, business_name, ad_review_next_due
+    RETURNING id, business_name, ad_review_next_due, ad_review_interval_days
   `;
   if (rows.length === 0) {
     throw new Error("Client not found");
@@ -183,6 +189,35 @@ export async function startAdReviewForClient(
     started: true,
     created,
     nextDue: normalizeDateISO(after[0]?.ad_review_next_due) ?? todayISO,
+  };
+}
+
+/**
+ * Sets how often the recurring ad-review repeats for one client (the cadence
+ * control next to Start/Stop). The already-scheduled next task keeps its
+ * date; the new spacing applies from that task onward.
+ */
+export async function setAdReviewIntervalForClient(
+  clientId: number,
+  days: number,
+): Promise<{ intervalDays: number; nextDue: string | null }> {
+  if (!Number.isInteger(days) || days < 1 || days > 365) {
+    throw new Error("Interval must be a whole number of days between 1 and 365");
+  }
+
+  const { rows } = await sql<{ ad_review_next_due: string | Date | null }>`
+    UPDATE clients
+    SET ad_review_interval_days = ${days}
+    WHERE id = ${clientId}
+    RETURNING ad_review_next_due
+  `;
+  if (rows.length === 0) {
+    throw new Error("Client not found");
+  }
+
+  return {
+    intervalDays: days,
+    nextDue: normalizeDateISO(rows[0].ad_review_next_due),
   };
 }
 

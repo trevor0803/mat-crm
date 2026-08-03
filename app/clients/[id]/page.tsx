@@ -6,7 +6,12 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ArrowLeft, Pencil, Plus, Repeat, Trash2 } from "lucide-react";
-import { Client, formatCurrency } from "@/lib/clients";
+import {
+  AD_REVIEW_INTERVAL_OPTIONS,
+  adReviewIntervalLabel,
+  Client,
+  formatCurrency,
+} from "@/lib/clients";
 import { Note } from "@/lib/notes";
 import { Task, TeamMember } from "@/lib/tasks";
 import { ClientFormModal } from "@/components/ClientFormModal";
@@ -35,6 +40,7 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
   const [deleting, setDeleting] = useState(false);
 
   const [adReviewBusy, setAdReviewBusy] = useState(false);
+  const [adIntervalBusy, setAdIntervalBusy] = useState(false);
 
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -181,6 +187,31 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
       toast.error(err instanceof Error ? err.message : "Failed to update recurring task");
     } finally {
       setAdReviewBusy(false);
+    }
+  }
+
+  // Change how often the auto "Check ad performance" task repeats for this
+  // client. The already-scheduled next task keeps its date; the new spacing
+  // applies from that task onward.
+  async function changeAdReviewInterval(days: number) {
+    if (!client || days === client.ad_review_interval_days) return;
+    setAdIntervalBusy(true);
+    try {
+      const res = await fetch(`/api/clients/${client.id}/ad-review`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "set-interval", days }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error ?? `Request failed (${res.status})`);
+      }
+      await fetchClient();
+      toast.success(`Ad check now repeats: ${adReviewIntervalLabel(days).toLowerCase()}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update cadence");
+    } finally {
+      setAdIntervalBusy(false);
     }
   }
 
@@ -449,6 +480,28 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
             )}
           </h2>
           <div className="flex flex-wrap items-center gap-2">
+            {client.ad_review_enabled && (
+              <select
+                value={client.ad_review_interval_days}
+                onChange={(e) => changeAdReviewInterval(Number(e.target.value))}
+                disabled={adIntervalBusy}
+                title="How often the auto 'Check ad performance' task repeats"
+                className="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-sm font-semibold text-gray-200 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50 [&>option]:bg-brand-navy"
+              >
+                {!AD_REVIEW_INTERVAL_OPTIONS.some(
+                  (o) => o.days === client.ad_review_interval_days,
+                ) && (
+                  <option value={client.ad_review_interval_days}>
+                    {adReviewIntervalLabel(client.ad_review_interval_days)}
+                  </option>
+                )}
+                {AD_REVIEW_INTERVAL_OPTIONS.map((o) => (
+                  <option key={o.days} value={o.days}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            )}
             <button
               type="button"
               onClick={toggleAdReview}
@@ -458,14 +511,14 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
                   ? "border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/20"
                   : "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"
               }`}
-              title="Weekly 'Check ad performance' task for Mike"
+              title="Recurring 'Check ad performance' task for Mike"
             >
               <Repeat className="h-4 w-4" />
               {adReviewBusy
                 ? "Saving..."
                 : client.ad_review_enabled
                   ? "Stop recurring ad check"
-                  : "Start weekly ad check"}
+                  : "Start recurring ad check"}
             </button>
             <button
               type="button"
@@ -481,7 +534,7 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
         {client.ad_review_enabled && (
           <p className="mb-3 inline-flex items-center gap-1.5 text-xs text-gray-400">
             <Repeat className="h-3 w-3 text-brand-gold" />
-            Recurs weekly for Mike
+            Recurs for Mike · {adReviewIntervalLabel(client.ad_review_interval_days).toLowerCase()}
             {client.ad_review_next_due ? ` · next ${client.ad_review_next_due}` : ""}
           </p>
         )}

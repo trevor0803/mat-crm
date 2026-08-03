@@ -12,6 +12,7 @@ type ClientRow = {
   ad_spend_dates: string | null;
   ad_review_enabled: boolean;
   ad_review_next_due: string | Date | null;
+  ad_review_interval_days: number;
   created_at: string;
 };
 
@@ -61,7 +62,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     const { rows } = await sql<ClientRow>`
       SELECT id, business_name, uses_ghl, retainer, bill_date, active,
              billing_method, ad_spend_dates, ad_review_enabled,
-             ad_review_next_due, created_at
+             ad_review_next_due, ad_review_interval_days, created_at
       FROM clients
       WHERE id = ${id}
     `;
@@ -147,7 +148,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       WHERE id = $${values.length}
       RETURNING id, business_name, uses_ghl, retainer, bill_date, active,
                 billing_method, ad_spend_dates, ad_review_enabled,
-                ad_review_next_due, created_at
+                ad_review_next_due, ad_review_interval_days, created_at
     `;
 
     const { rows } = await sql.query<ClientRow>(text, values);

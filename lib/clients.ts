@@ -9,6 +9,7 @@ export type Client = {
   ad_spend_dates: string | null;
   ad_review_enabled: boolean;
   ad_review_next_due: string | null;
+  ad_review_interval_days: number;
   created_at: string;
 };
 
@@ -18,7 +19,20 @@ export type Client = {
 // title is fixed so the cron can dedup on client + title + due_date.
 export const AD_REVIEW_TITLE = "Check ad performance";
 export const AD_REVIEW_ASSIGNEE = "Mike";
+// Default cadence for newly enrolled clients; each client can override via
+// clients.ad_review_interval_days (the cadence control on the client page).
 export const AD_REVIEW_INTERVAL_DAYS = 7;
+
+export const AD_REVIEW_INTERVAL_OPTIONS = [
+  { days: 7, label: "Weekly" },
+  { days: 14, label: "Every 2 weeks" },
+  { days: 30, label: "Every 30 days" },
+] as const;
+
+export function adReviewIntervalLabel(days: number): string {
+  const preset = AD_REVIEW_INTERVAL_OPTIONS.find((o) => o.days === days);
+  return preset ? preset.label : `Every ${days} days`;
+}
 
 export type ClientFormValues = {
   business_name: string;

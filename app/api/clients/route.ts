@@ -12,6 +12,7 @@ type ClientRow = {
   ad_spend_dates: string | null;
   ad_review_enabled: boolean;
   ad_review_next_due: string | Date | null;
+  ad_review_interval_days: number;
   created_at: string;
 };
 
@@ -39,7 +40,7 @@ export async function GET() {
     const { rows } = await sql<ClientRow>`
       SELECT id, business_name, uses_ghl, retainer, bill_date, active,
              billing_method, ad_spend_dates, ad_review_enabled,
-             ad_review_next_due, created_at
+             ad_review_next_due, ad_review_interval_days, created_at
       FROM clients
       ORDER BY business_name ASC
     `;
@@ -112,7 +113,7 @@ export async function POST(req: NextRequest) {
          ${active}, ${billing_method ?? null}, ${ad_spend_dates ?? null})
       RETURNING id, business_name, uses_ghl, retainer, bill_date, active,
                 billing_method, ad_spend_dates, ad_review_enabled,
-                ad_review_next_due, created_at
+                ad_review_next_due, ad_review_interval_days, created_at
     `;
 
     return NextResponse.json(normalize(rows[0]), { status: 201 });

@@ -14,6 +14,7 @@ export const CREATE_CLIENTS_TABLE = `
     ad_spend_dates TEXT,
     ad_review_enabled BOOLEAN NOT NULL DEFAULT FALSE,
     ad_review_next_due DATE,
+    ad_review_interval_days INTEGER NOT NULL DEFAULT 7,
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
   );
 `;
@@ -29,6 +30,13 @@ export const ALTER_CLIENTS_ADD_AD_REVIEW = `
 export const ALTER_CLIENTS_ADD_AD_REVIEW_NEXT_DUE = `
   ALTER TABLE clients
     ADD COLUMN IF NOT EXISTS ad_review_next_due DATE;
+`;
+
+// Per-client cadence for the recurring ad-performance review (in days).
+// Defaults to weekly; changed via the cadence control on the client page.
+export const ALTER_CLIENTS_ADD_AD_REVIEW_INTERVAL = `
+  ALTER TABLE clients
+    ADD COLUMN IF NOT EXISTS ad_review_interval_days INTEGER NOT NULL DEFAULT 7;
 `;
 
 export const CREATE_CHATTER_NOTES_TABLE = `
